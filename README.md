@@ -184,6 +184,110 @@ public PasswordEncoder passwordEncoder() {
 
 ### 自定义登录页面
 
+#### 涉及处理点
+
+处理点：1 根据请求判断是跳转登录页面还是返回JSON数据
+
+处理点：2 用户可以配置登录页面来覆盖默认的登录页面
+
+
+
+在src/main/resources目录下新建目录resources 并新建自定义登录页面cobra-singIn.html
+
+配置HttpSecurity使其加载我们自定义的登录页面，.loginPage 配置的是一个静态页面
+
+```
+       http
+                //表单登录设置
+                .formLogin()
+                 //自定义登录页面
+                .loginPage("/cobra-singIn.html")
+                //自定义登录请求地址默认为/login
+                .loginProcessingUrl("/authentication/form")
+               
+```
+
+
+
+如下所示注意这里.loginPage配置的是一个Controller而不是一个页面，这样做的好处是可以根据请求URL判断是重定向到登录页面 ，还是说直接返回JSON数据
+
+```java
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    http
+            //表单登录设置
+            .formLogin()
+            //自定义登录页面，这里请求到一个Controller而不是配置的一个静态页面，好处是根据请求类型判断是否跳转页面还是返回json数据
+            .loginPage("/authentication/require")
+            //自定义登录请求提交地址，默认为/login
+            .loginProcessingUrl("/authentication/form")
+            .and()
+            //授权请求
+            .authorizeRequests()
+            //匹配上的请求放行
+            .antMatchers("/authentication/require", securityProperties.getBrowser().getLoginPage())
+            .permitAll()
+            //未匹配上的其他请求都需要认证后才能进行访问
+            .anyRequest()
+            .authenticated()
+            //关闭跨站请求伪造
+            .and().csrf().disable();
+}
+```
+
+
+
+如下：同时我们增加了配置类securityProperties 在配置类中我们设置了默认跳转的登录页面，如果用户通过com.cobra.security.browser.loginPage=/demo-signIn.html 设置了自定义登录那么将覆盖我们提供的默认登录页面
+
+```java
+public class BrowserProperties {
+    //设置默认登录页面，如果配置了com.cobra.security.browser.loginPage 则会覆盖默认登录页面
+    private String loginPage="/default-singIn.html";
+
+    public String getLoginPage() {
+        return loginPage;
+    }
+
+    public void setLoginPage(String loginPage) {
+        this.loginPage = loginPage;
+    }
+}
+```
+
+
+
+```java
+@RestController
+public class BrowserSecurityController {
+    //请求缓存，可以从请求缓存中获取引发跳转的URL
+    private RequestCache requestCache = new HttpSessionRequestCache();
+    //由spring提供的跳转工具
+    private RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
+    @Autowired
+    private SecurityProperties securityProperties;
+    @RequestMapping("/authentication/require")
+    @ResponseStatus(code= HttpStatus.UNAUTHORIZED)
+    public SimpleResponse requireAuthentication(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        //根据传入的请求获取引发跳转的请求
+        SavedRequest savedRequest = requestCache.getRequest(request, response);
+        if (savedRequest != null) {
+            //获取引发跳转的Url
+            String targetUrl = savedRequest.getRedirectUrl();
+            if (targetUrl.contains(".html")) {
+                redirectStrategy.sendRedirect(request, response, securityProperties.getBrowser().getLoginPage());
+            }
+        }
+        return new SimpleResponse("访问的服务需要身份认证，请引导用户到登录页");
+    }
+}
+```
+
+
+
+properties的配置规划如下，放在cobra-security-core组件中
+
+![系统配置封装](.\images\系统配置封装.png)
+
 
 
 ### 自定义登录成功处理
@@ -214,4 +318,27 @@ SpringSecurity默认是跳转到登录之前请求的URL,在登录成功处理�
 
 ## 实现手机号+短信认证
 
-  	
+ 
+
+
+
+
+
+## 常见问题及解决方式
+
+### csrf （Cross—SiteRequestForgery）
+
+表现为如下所示：
+
+![csrf-1](.\images\csrf-1.png)
+
+![csrf-2](.\images\csrf-2.png)
+
+ 解决方式：//关闭跨站请求伪造csrf().disable()
+
+  
+
+```
+  http.xxxxx.and().csrf().disable();
+```
+

@@ -32,6 +32,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         //这里一般返回用户名以及加密后的用户密码，交给SpringSecurity做校验（从数据库读出来的密码应该是加密后的密码）
         String password = passwordEncoder.encode("123456");
         log.info("用户在数据库的密码是：" + password);
-        return new User("",password, AuthorityUtils.commaSeparatedStringToAuthorityList("admin"));
+        return new User(username,password, AuthorityUtils.commaSeparatedStringToAuthorityList("admin"));
     }
 }
