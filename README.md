@@ -294,15 +294,146 @@ properties的配置规划如下，放在cobra-security-core组件中
 
 SpringSecurity默认是跳转到登录之前请求的URL,在登录成功处理中我们也可以加入自己的逻辑譬如登录成功加积分或者签到做记录等。
 
+自定义登录成功处理
 
+```java
+@Component
+public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    private Logger log = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler.class);
+
+    private ObjectMapper objectMapper= new ObjectMapper();
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        log.info("登录成功");
+        response.setContentType("application/json;utf-8");
+        response.getWriter().println(objectMapper.writeValueAsString(authentication));
+    }
+}
+```
+
+配置自定义登录成功处理器使其生效(这里省略了部分配置展示当前配置成功处理器的过程)
+
+```java
+@Autowired
+private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+...
+//表单登录设置
+.formLogin()
+//自定义登录页面，这里请求到一个Controller而不是配置的一个静态页面，好处是根据请求类型判断是否跳转页面还是返回json数据
+.loginPage("/authentication/require")
+//自定义登录请求提交地址，默认为/login
+.loginProcessingUrl("/authentication/form")
+.successHandler(customAuthenticationSuccessHandler)
+...
+```
 
 ### 自定义登录失败处理
 
 可以在登录失败处理中加入失败次数统计，记录登录失败错误日志等逻辑
 
+自定义登录失败处理器
 
+```java
+@Component("customAuthenticationFailureHandler")
+public class CustomAuthenticationFailureHandler implements AuthenticationFailureHandler {
 
+    private Logger log = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler.class);
 
+    private ObjectMapper objectMapper= new ObjectMapper();
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        log.info("登录失败");
+
+        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        response.setContentType("application/json;charset=utf-8");
+        response.getWriter().write(objectMapper.writeValueAsString(exception));
+    }
+}
+```
+
+配置自定义登录失败处理器使其生效
+
+```java
+
+@Autowired
+private CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
+...
+//表单登录设置
+.formLogin()
+//自定义登录页面，这里请求到一个Controller而不是配置的一个静态页面，好处是根据请求类型判断是否跳转页面还是返回json数据
+.loginPage("/authentication/require")
+//自定义登录请求提交地址，默认为/login
+.loginProcessingUrl("/authentication/form")
+.successHandler(customAuthenticationSuccessHandler)
+.failureHandler(customAuthenticationFailureHandler)
+...
+```
+
+优化操作根据配置判断是返回JSON格式的数据还是跳转诱发登录前的地址
+
+### 自定义登录成功处理器优化
+
+SavedRequestAwareAuthenticationSuccessHandler 是SpringSecurity针对AuthenticationSuccessHandler的一个默认实现，登录成功后会跳转至引发登录前的URL，我们可以通过配置判断是返回JSON数据还是跳转至引发登录的URL，优化后的代码如下
+
+```java
+@Component("customAuthenticationSuccessHandler")
+public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+
+    @Autowired
+    private SecurityProperties securityProperties;
+
+    private Logger log = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler.class);
+
+    private ObjectMapper objectMapper= new ObjectMapper();
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        log.info("登录成功");
+        if(LoginType.JSON.equals(securityProperties.getBrowser().getLoginType())){
+            response.setContentType("application/json;charset=utf-8");
+            response.getWriter().println(objectMapper.writeValueAsString(authentication));
+        }else{
+            super.onAuthenticationSuccess(request,response,authentication);
+        }
+    }
+}
+```
+
+### 自定义登录失败处理器优化
+
+```java
+@Component("customAuthenticationFailureHandler")
+public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
+
+    @Autowired
+    private SecurityProperties securityProperties;
+
+    private Logger log = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler.class);
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        log.info("登录失败");
+        if (LoginType.JSON.equals(securityProperties.getBrowser().getLoginType())) {
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setContentType("application/json;charset=utf-8");
+            response.getWriter().write(objectMapper.writeValueAsString(exception));
+        }else{
+            //注意这里登录失败是跳转到一个springboot提供的错误页面
+            super.onAuthenticationFailure(request,response,exception);
+        }
+    }
+}
+
+```
+
+注意这里如果是LoginType为DIRECT时，登录失败跳转到由springboot提供的一个错误页面如图所示
+
+![自定义登录失败重定向页面效果](.\images\自定义登录失败重定向页面效果.png)
 
 
 

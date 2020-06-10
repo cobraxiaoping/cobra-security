@@ -1,5 +1,7 @@
 package com.cobra;
 
+import com.cobra.authentication.CustomAuthenticationFailureHandler;
+import com.cobra.authentication.CustomAuthenticationSuccessHandler;
 import com.cobra.properties.SecurityProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +22,12 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private SecurityProperties securityProperties;
 
+    @Autowired
+    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+
+    @Autowired
+    private CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
@@ -29,6 +37,8 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
                 .loginPage("/authentication/require")
                 //自定义登录请求提交地址，默认为/login
                 .loginProcessingUrl("/authentication/form")
+                .successHandler(customAuthenticationSuccessHandler)
+                .failureHandler(customAuthenticationFailureHandler)
                 .and()
                 //授权请求
                 .authorizeRequests()
