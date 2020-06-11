@@ -437,6 +437,89 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
 
 
+## 认证流程源码级详解
+
+
+
+![springsecurity基本原理](.\images\springsecurity基本原理-1591871809851.png)
+
+### 认证处理流程说明
+
+![登录流程](.\images\登录流程-1591873377064.png)
+
+### 认证结果如何在多个请求之间共享
+
+![认证共享](.\images\认证共享.png)
+
+### 
+
+```java
+AbstractAuthenticationProcessingFilter.java
+
+protected void successfulAuthentication(HttpServletRequest request,
+      HttpServletResponse response, FilterChain chain, Authentication authResult)
+      throws IOException, ServletException {
+
+   if (logger.isDebugEnabled()) {
+      logger.debug("Authentication success. Updating SecurityContextHolder to contain: "
+            + authResult);
+   }
+
+   SecurityContextHolder.getContext().setAuthentication(authResult);
+
+   rememberMeServices.loginSuccess(request, response, authResult);
+
+   // Fire event
+   if (this.eventPublisher != null) {
+      eventPublisher.publishEvent(new InteractiveAuthenticationSuccessEvent(
+            authResult, this.getClass()));
+   }
+
+   successHandler.onAuthenticationSuccess(request, response, authResult);
+}
+```
+
+![spring security 过滤器链](.\images\spring security 过滤器链.png)
+
+SecurityContextPersistenceFilter 的作用是在请求来临时从Session中获取认证信息放入SecurityContextHolder中，请求结束时将SecurityContextHolder 中的认证信息放入Session中，这样认证结果就能在多个请求之间共享。
+
+### 获取认证用户信息
+
+
+
+```java
+@GetMapping("/me")
+public Object getMe(){
+    return SecurityContextHolder.getContext().getAuthentication();
+}
+返回数据：
+{"authorities":[{"authority":"admin"}],"details":{"remoteAddress":"0:0:0:0:0:0:0:1","sessionId":"7AE4641F772EAA5F444B17A5D9D4B608"},"authenticated":true,"principal":{"password":null,"username":"22222","authorities":[{"authority":"admin"}],"accountNonExpired":true,"accountNonLocked":true,"credentialsNonExpired":true,"enabled":true},"credentials":null,"name":"22222"}
+```
+
+或者
+
+```java
+//springSecurity 会自动将SecurityContextHolder中的认证信息赋值给Authentication类型的变量
+@GetMapping("/me/v1")
+public Object getMeV1(Authentication authentication){
+    return authentication;
+}
+返回数据：
+{"authorities":[{"authority":"admin"}],"details":{"remoteAddress":"0:0:0:0:0:0:0:1","sessionId":"7AE4641F772EAA5F444B17A5D9D4B608"},"authenticated":true,"principal":{"password":null,"username":"22222","authorities":[{"authority":"admin"}],"accountNonExpired":true,"accountNonLocked":true,"credentialsNonExpired":true,"enabled":true},"credentials":null,"name":"22222"}
+```
+
+或者
+
+```java
+我们只关注用户的信息也可以这样
+@GetMapping("/me/v2")
+public Object getMeV2(@AuthenticationPrincipal UserDetails authentication){
+    return authentication;
+}
+返回数据：
+{"password":null,"username":"22222","authorities":[{"authority":"admin"}],"accountNonExpired":true,"accountNonLocked":true,"credentialsNonExpired":true,"enabled":true}
+```
+
 ## 实现用户名+密码认证
 
 
