@@ -520,15 +520,119 @@ public Object getMeV2(@AuthenticationPrincipal UserDetails authentication){
 {"password":null,"username":"22222","authorities":[{"authority":"admin"}],"accountNonExpired":true,"accountNonLocked":true,"credentialsNonExpired":true,"enabled":true}
 ```
 
+
+
 ## 实现用户名+密码认证
 
+### 图片验证码
+
+图片验证码的生成步骤
+
+1.根据随机数生成图片
+
+2.将随机数存到Session中
+
+3.将生成的图片写到接口的响应中
+
+```java
+@GetMapping("/code/image")
+public void createCode(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    //第一步创建图片验证码
+    ImageCode imageCode = createImageCode(request);
+
+    //第二步将验证码放入Session中
+    sessionStrategy.setAttribute(new ServletWebRequest(request), SESSION_KEY, imageCode);
+
+    //第三步将图片验证码写入到响应中
+    ImageIO.write(imageCode.getImage(), "JPEG", response.getOutputStream());
+}
+```
+
+图片验证码的验证步骤
+
+我们需要自定义filter 来验证验证码的有效性，过滤器的代码实现如下
+
+```java
+//OncePerRequestFilter 是spring 提供的一个工具类，保证过滤器只被调用一次
+public class ValidateCodeFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private AuthenticationFailureHandler authenticationFailureHandler;
+
+    private SessionStrategy sessionStrategy = new HttpSessionSessionStrategy();
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        if (StringUtils.equals("/authentication/form",request.getRequestURI() ) && StringUtils.equalsIgnoreCase(request.getMethod(), "post")) {
+            try {
+                validate(new ServletWebRequest(request));
+            } catch (ValidateCodeException e) {
+                authenticationFailureHandler.onAuthenticationFailure(request, response, e);
+                //如果验证码验证失败则不进行后续的过滤器处理逻辑
+                return;
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+
+    private void validate(ServletWebRequest servletWebRequest) throws ServletRequestBindingException {
+        ImageCode codeInSession = (ImageCode) sessionStrategy.getAttribute(servletWebRequest, ValidateCodeController.SESSION_KEY);
+        String codeInRequest = ServletRequestUtils.getStringParameter(servletWebRequest.getRequest(), "imageCode");
+
+        if (StringUtils.isBlank(codeInRequest)) {
+            throw new ValidateCodeException("验证码不能为空");
+        }
+        if (codeInSession == null) {
+            throw new ValidateCodeException("验证码不存在");
+        }
+        if (codeInSession.isExpire()) {
+            sessionStrategy.removeAttribute(servletWebRequest, ValidateCodeController.SESSION_KEY);
+            throw new ValidateCodeException("验证码已经过期");
+        }
+        if (!StringUtils.equals(codeInSession.getCode(), codeInRequest)) {
+            throw new ValidateCodeException("验证码不匹配");
+        }
+        sessionStrategy.removeAttribute(servletWebRequest, ValidateCodeController.SESSION_KEY);
+    }
+
+    public void setAuthenticationFailureHandler(AuthenticationFailureHandler authenticationFailureHandler) {
+        this.authenticationFailureHandler = authenticationFailureHandler;
+    }
+
+    public void setSessionStrategy(SessionStrategy sessionStrategy) {
+        this.sessionStrategy = sessionStrategy;
+    }
+}
+```
+
+验证不合法我们抛出自己的验证码验证异常，验证码验证异常申明如下：
+
+```java
+//AuthenticationException异常是SpringSecurity框架认证异常的基础我们基于基类申明验证码验证异常类
+public class ValidateCodeException extends AuthenticationException {
+    public ValidateCodeException(String msg, Throwable t) {
+        super(msg, t);
+    }
+
+    public ValidateCodeException(String msg) {
+        super(msg);
+    }
+}
+```
 
 
 
+在我们申明了图片验证码过滤器时我们需要将过滤器加入到过滤器链中，我们放在UsernamePasswordAuthenticationFilter过滤器前完成图片验证码的验证
 
+```java
+...
+ValidateCodeFilter validateCodeFilter = new ValidateCodeFilter();
+validateCodeFilter.setAuthenticationFailureHandler(customAuthenticationFailureHandler);
 
-
-
+http.addFilterBefore(validateCodeFilter, UsernamePasswordAuthenticationFilter.class)
+...
+```
 
 ## 实现手机号+短信认证
 

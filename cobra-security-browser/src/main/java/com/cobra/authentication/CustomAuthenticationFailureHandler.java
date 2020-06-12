@@ -2,6 +2,7 @@ package com.cobra.authentication;
 
 import com.cobra.enums.LoginType;
 import com.cobra.properties.SecurityProperties;
+import com.cobra.support.SimpleResponse;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
         if (LoginType.JSON.equals(securityProperties.getBrowser().getLoginType())) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.setContentType("application/json;charset=utf-8");
-            response.getWriter().write(objectMapper.writeValueAsString(exception));
+            response.getWriter().write(objectMapper.writeValueAsString(new SimpleResponse(exception.getMessage())));
         }else{
             //注意这里登录失败是跳转到一个springboot提供的错误页面
             super.onAuthenticationFailure(request,response,exception);
