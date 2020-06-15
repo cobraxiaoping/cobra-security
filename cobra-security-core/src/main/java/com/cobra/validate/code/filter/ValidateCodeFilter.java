@@ -1,13 +1,16 @@
 package com.cobra.validate.code.filter;
 
 import com.cobra.controller.ValidateCodeController;
+import com.cobra.properties.SecurityProperties;
 import com.cobra.validate.code.ImageCode;
 import com.cobra.validate.code.exception.ValidateCodeException;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.social.connect.web.HttpSessionSessionStrategy;
 import org.springframework.social.connect.web.SessionStrategy;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -18,19 +21,46 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 //OncePerRequestFilter 是spring 提供的一个工具类，保证过滤器只被调用一次
-public class ValidateCodeFilter extends OncePerRequestFilter {
+public class ValidateCodeFilter extends OncePerRequestFilter  implements InitializingBean {
 
     @Autowired
     private AuthenticationFailureHandler authenticationFailureHandler;
 
     private SessionStrategy sessionStrategy = new HttpSessionSessionStrategy();
 
+    private SecurityProperties securityProperties;
+
+    //用与存储需要图片验证码验证的接口url
+    private Set<String> urlSet = new HashSet<String>();
+
+    //用于判断请求路径是否需要验证码验证
+    private AntPathMatcher antPathMatcher = new AntPathMatcher();
+
+    @Override
+    public void  afterPropertiesSet ()throws ServletException{
+        super.afterPropertiesSet();
+        String [] urlArray= StringUtils.splitByWholeSeparatorPreserveAllTokens(securityProperties.getCode().getImage().getUrl(),";");
+        for(String url :urlArray){
+            urlSet.add(url);
+        }
+        urlSet.add("/authentication/form");
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        if (StringUtils.equals("/authentication/form",request.getRequestURI() ) && StringUtils.equalsIgnoreCase(request.getMethod(), "post")) {
+        boolean action =false;
+        for(String url:urlSet){
+            if(antPathMatcher.match(url,request.getRequestURI())){
+                action=true;
+            }
+        }
+
+        if (action) {
             try {
                 validate(new ServletWebRequest(request));
             } catch (ValidateCodeException e) {
@@ -68,5 +98,9 @@ public class ValidateCodeFilter extends OncePerRequestFilter {
 
     public void setSessionStrategy(SessionStrategy sessionStrategy) {
         this.sessionStrategy = sessionStrategy;
+    }
+
+    public void setSecurityProperties(SecurityProperties securityProperties) {
+        this.securityProperties = securityProperties;
     }
 }

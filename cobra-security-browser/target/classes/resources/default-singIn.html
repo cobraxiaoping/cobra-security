@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>自定义登录页面</title>
-    <h1>自定义登录页面用于覆盖cobra-security-browser提供的默认登录页面</h1>
+    <title>登录</title>
+</head>
+<body>
+    <h1>标准登录页面</h1>
     <form action="/authentication/form" method="post">
         <table>
             <tr>
@@ -12,12 +14,14 @@
             </tr>
             <tr>
                 <td>密码</td>
-                <td><input type="text" name="password"></td>
+                <td>
+                    <input type="text" name="password">
+                </td>
             </tr>
             <tr>
                 <td>图形验证码</td>
                 <td><input type="text" name="imageCode">
-                    <img src="/code/image?width=200">
+                    <img src="/code/image">
                 </td>
             </tr>
             <tr>
@@ -27,8 +31,5 @@
             </tr>
         </table>
     </form>
-</head>
-<body>
-
 </body>
 </html>
