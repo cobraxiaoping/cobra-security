@@ -799,6 +799,181 @@ public class DemoImageCodeGenerator implements ValidateCodeGenerator {
 
 
 
+### 实现'记住我'功能
+
+#### 记住我功能基本原理
+
+![记住我功能-01](.\images\记住我功能-01.png)
+
+​    过滤器链如下：
+
+   ![记住我功能-02](.\images\记住我功能-02-1592303988995.png)
+
+
+
+
+
+#### 记住我功能具体实现
+
+第一步现在前端增加记住我的功能
+
+```html
+//注意这里的name值必须为remember-me
+<tr>
+    <td colspan="2"><input type="checkbox" name="remember-me" value="true">记住我
+    </td>
+</tr>
+```
+
+
+
+第二步 申明一个PersistentTokenRepository，用户登录成功以后生成token 并将用户名和token保存到库中
+
+```java
+@Autowired
+private DataSource dataSource;
+
+@Autowired
+private UserDetailsService userDetailsService;
+
+@Bean
+public PersistentTokenRepository persistentTokenRepository(){
+    JdbcTokenRepositoryImpl jdbcTokenRepository = new JdbcTokenRepositoryImpl();
+    jdbcTokenRepository.setDataSource(dataSource);
+    //在项目启动的时候创建需要存储用户登录信息的表，也可以手动执行sql，注意这里如果设置成true,第二次启动时会报错提示表已经存在
+    //jdbcTokenRepository.setCreateTableOnStartup(true);
+    return jdbcTokenRepository;
+}
+```
+
+
+
+配置记住我功能
+
+```java
+...
+.and()
+    .rememberMe()
+     
+    .tokenRepository(persistentTokenRepository())
+    .tokenValiditySeconds(securityProperties.getBrowser().getRememberMeSeconds())
+    .userDetailsService(userDetailsService)
+...
+```
+
+
+
+#### 记住我功能SpringSecurity源码解析
+
+```java
+AbstractAuthenticationProcessingFilter.java
+
+protected void successfulAuthentication(HttpServletRequest request,
+      HttpServletResponse response, FilterChain chain, Authentication authResult)
+      throws IOException, ServletException {
+
+   if (logger.isDebugEnabled()) {
+      logger.debug("Authentication success. Updating SecurityContextHolder to contain: "
+            + authResult);
+   }
+
+   SecurityContextHolder.getContext().setAuthentication(authResult);
+   //在登录成功以后调用了rememberMeServices 完成token的生成以及入库
+   rememberMeServices.loginSuccess(request, response, authResult);
+
+   // Fire event
+   if (this.eventPublisher != null) {
+      eventPublisher.publishEvent(new InteractiveAuthenticationSuccessEvent(
+            authResult, this.getClass()));
+   }
+
+   successHandler.onAuthenticationSuccess(request, response, authResult);
+}
+```
+
+
+
+
+
+如果用户已经登录RememberMeAuthenticationFilter.java 
+
+```java
+public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
+      throws IOException, ServletException {
+   HttpServletRequest request = (HttpServletRequest) req;
+   HttpServletResponse response = (HttpServletResponse) res;
+
+   if (SecurityContextHolder.getContext().getAuthentication() == null) {
+       //通过rememberMeServices 查询用户是否启用了记住我功能如果启用那么根据用户名查询用户信息并将认证信息放入SecurityContextHolder中
+      Authentication rememberMeAuth = rememberMeServices.autoLogin(request,
+            response);
+
+      if (rememberMeAuth != null) {
+         // Attempt authenticaton via AuthenticationManager
+         try {
+            rememberMeAuth = authenticationManager.authenticate(rememberMeAuth);
+
+            // Store to SecurityContextHolder
+            SecurityContextHolder.getContext().setAuthentication(rememberMeAuth);
+
+            onSuccessfulAuthentication(request, response, rememberMeAuth);
+
+            if (logger.isDebugEnabled()) {
+               logger.debug("SecurityContextHolder populated with remember-me token: '"
+                     + SecurityContextHolder.getContext().getAuthentication()
+                     + "'");
+            }
+
+            // Fire event
+            if (this.eventPublisher != null) {
+               eventPublisher
+                     .publishEvent(new InteractiveAuthenticationSuccessEvent(
+                           SecurityContextHolder.getContext()
+                                 .getAuthentication(), this.getClass()));
+            }
+
+            if (successHandler != null) {
+               successHandler.onAuthenticationSuccess(request, response,
+                     rememberMeAuth);
+
+               return;
+            }
+
+         }
+         catch (AuthenticationException authenticationException) {
+            if (logger.isDebugEnabled()) {
+               logger.debug(
+                     "SecurityContextHolder not populated with remember-me token, as "
+                           + "AuthenticationManager rejected Authentication returned by RememberMeServices: '"
+                           + rememberMeAuth
+                           + "'; invalidating remember-me token",
+                     authenticationException);
+            }
+
+            rememberMeServices.loginFail(request, response);
+
+            onUnsuccessfulAuthentication(request, response,
+                  authenticationException);
+         }
+      }
+
+      chain.doFilter(request, response);
+   }
+   else {
+      if (logger.isDebugEnabled()) {
+         logger.debug("SecurityContextHolder not populated with remember-me token, as it already contained: '"
+               + SecurityContextHolder.getContext().getAuthentication() + "'");
+      }
+
+      chain.doFilter(request, response);
+   }
+}
+```
+
+
+
+
+
 ## 实现手机号+短信认证
 
  

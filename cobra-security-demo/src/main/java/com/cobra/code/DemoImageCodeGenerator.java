@@ -5,7 +5,7 @@ import com.cobra.validate.code.ValidateCodeGenerator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.ServletWebRequest;
 
-@Component("imageValidateCodeGenerator")
+//@Component("imageValidateCodeGenerator")
 public class DemoImageCodeGenerator implements ValidateCodeGenerator {
     @Override
     public ImageCode createImageCode(ServletWebRequest request) {
