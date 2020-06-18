@@ -9,6 +9,7 @@ public class SecurityProperties {
 
     private ValidateCodeProperties code = new ValidateCodeProperties();
 
+
     public BrowserProperties getBrowser() {
         return browser;
     }

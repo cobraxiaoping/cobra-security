@@ -2,7 +2,7 @@ package com.cobra.validate.code.filter;
 
 import com.cobra.controller.ValidateCodeController;
 import com.cobra.properties.SecurityProperties;
-import com.cobra.validate.code.ImageCode;
+import com.cobra.validate.code.ImageValidateCode;
 import com.cobra.validate.code.exception.ValidateCodeException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -73,7 +73,7 @@ public class ValidateCodeFilter extends OncePerRequestFilter  implements Initial
     }
 
     private void validate(ServletWebRequest servletWebRequest) throws ServletRequestBindingException {
-        ImageCode codeInSession = (ImageCode) sessionStrategy.getAttribute(servletWebRequest, ValidateCodeController.SESSION_KEY);
+        ImageValidateCode codeInSession = (ImageValidateCode) sessionStrategy.getAttribute(servletWebRequest, ValidateCodeController.SESSION_KEY);
         String codeInRequest = ServletRequestUtils.getStringParameter(servletWebRequest.getRequest(), "imageCode");
 
         if (StringUtils.isBlank(codeInRequest)) {

@@ -1,8 +1,6 @@
 package com.cobra.validate.code;
 
 import com.cobra.properties.SecurityProperties;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 
@@ -10,14 +8,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
-public class DefaultValidateCodeGenerator implements ValidateCodeGenerator{
+public class DefaultImageValidateCodeGenerator implements ValidateCodeGenerator {
 
     public SecurityProperties securityProperties;
 
     @Override
-    public ImageCode createImageCode(ServletWebRequest request) {
-        int width = ServletRequestUtils.getIntParameter(request.getRequest(),"width",securityProperties.getCode().getImage().getWidth());
-        int height =ServletRequestUtils.getIntParameter(request.getRequest(),"height", securityProperties.getCode().getImage().getHeight());
+    public ImageValidateCode generate(ServletWebRequest request) {
+        int width = ServletRequestUtils.getIntParameter(request.getRequest(), "width", securityProperties.getCode().getImage().getWidth());
+        int height = ServletRequestUtils.getIntParameter(request.getRequest(), "height", securityProperties.getCode().getImage().getHeight());
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
         Graphics g = image.getGraphics();
@@ -44,7 +42,7 @@ public class DefaultValidateCodeGenerator implements ValidateCodeGenerator{
             g.drawString(rand, 13 * i + 6, 16);
         }
         g.dispose();
-        return new ImageCode(image, sRand, securityProperties.getCode().getImage().getExpireIn());
+        return new ImageValidateCode(sRand, securityProperties.getCode().getImage().getExpireIn(), image);
     }
 
     private Color getRandColor(int fc, int bc) {

@@ -976,9 +976,25 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
 
 ## 实现手机号+短信认证
 
- 
+### 实现短信验证码登录
+
+开发短信验证码接口
 
 
+
+校验短信验证码并登录
+
+
+
+## 图片验证码以及短信验证码代码重构
+
+
+
+![验证码处理重构逻辑](.\images\验证码处理重构逻辑.png)
+
+定义一个ValidateCodeprocessor接口，有一个抽象的实现类AbstractValidateCodeProcessor
+
+图片验证码和短信验证码不一样的地方通过子类ImageCodeProcessor 和SmsCodeProcessor去实现
 
 
 
