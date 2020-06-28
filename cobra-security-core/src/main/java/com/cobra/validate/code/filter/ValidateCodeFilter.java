@@ -2,8 +2,8 @@ package com.cobra.validate.code.filter;
 
 import com.cobra.controller.ValidateCodeController;
 import com.cobra.properties.SecurityProperties;
-import com.cobra.validate.code.ImageValidateCode;
 import com.cobra.validate.code.exception.ValidateCodeException;
+import com.cobra.validate.code.image.ImageValidateCode;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 //OncePerRequestFilter 是spring 提供的一个工具类，保证过滤器只被调用一次
-public class ValidateCodeFilter extends OncePerRequestFilter  implements InitializingBean {
+public class ValidateCodeFilter extends OncePerRequestFilter implements InitializingBean {
+
+    public static final String SESSION_KEY = "SESSION_KEY_IMAGE_CODE_IMAGE";
 
     @Autowired
     private AuthenticationFailureHandler authenticationFailureHandler;

@@ -1,6 +1,7 @@
-package com.cobra.validate.code;
+package com.cobra.validate.code.image;
 
 import com.cobra.properties.SecurityProperties;
+import com.cobra.validate.code.ValidateCodeGenerator;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 

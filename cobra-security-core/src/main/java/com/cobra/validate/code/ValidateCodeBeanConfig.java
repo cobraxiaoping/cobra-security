@@ -1,6 +1,7 @@
 package com.cobra.validate.code;
 
 import com.cobra.properties.SecurityProperties;
+import com.cobra.validate.code.image.DefaultImageValidateCodeGenerator;
 import com.cobra.validate.code.sms.DefaultSmsCodeSender;
 import com.cobra.validate.code.sms.SmsCodeSender;
 import org.springframework.beans.factory.annotation.Autowired;

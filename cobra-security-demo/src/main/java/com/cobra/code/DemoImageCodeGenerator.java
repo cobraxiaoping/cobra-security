@@ -1,7 +1,7 @@
 package com.cobra.code;
 
-import com.cobra.validate.code.ImageValidateCode;
 import com.cobra.validate.code.ValidateCodeGenerator;
+import com.cobra.validate.code.image.ImageValidateCode;
 import org.springframework.web.context.request.ServletWebRequest;
 
 //@Component("imageValidateCodeGenerator")

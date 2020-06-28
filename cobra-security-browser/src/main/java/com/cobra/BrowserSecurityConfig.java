@@ -69,17 +69,17 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
                     .failureHandler(customAuthenticationFailureHandler)
                 .and()
                     .rememberMe()
-                     //设置用户保存token的Repository
-                    .tokenRepository(persistentTokenRepository())
-                     //设置记住我功能的有效时长单位秒这里我们做成配置可配置
-                    .tokenValiditySeconds(securityProperties.getBrowser().getRememberMeSeconds())
-                     //通过tokenRepository 中的token 获取用户名通过userDetailsService获取具体的用户信息
-                    .userDetailsService(userDetailsService)
+                //设置用户保存token的Repository
+                .tokenRepository(persistentTokenRepository())
+                //设置记住我功能的有效时长单位秒这里我们做成配置可配置
+                .tokenValiditySeconds(securityProperties.getBrowser().getRememberMeSeconds())
+                //通过tokenRepository 中的token 获取用户名通过userDetailsService获取具体的用户信息
+                .userDetailsService(userDetailsService)
                 .and()
-                    //授权请求
-                    .authorizeRequests()
-                    //匹配上的请求放行
-                    .antMatchers("/authentication/require","/code/image", securityProperties.getBrowser().getLoginPage())
+                //授权请求
+                .authorizeRequests()
+                //匹配上的请求放行
+                .antMatchers("/authentication/require", "/code/*", securityProperties.getBrowser().getLoginPage())
                     .permitAll()
                     //未匹配上的其他请求都需要认证后才能进行访问
                     .anyRequest()

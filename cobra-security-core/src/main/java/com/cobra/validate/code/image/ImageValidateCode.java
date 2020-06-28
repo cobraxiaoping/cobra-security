@@ -1,4 +1,6 @@
-package com.cobra.validate.code;
+package com.cobra.validate.code.image;
+
+import com.cobra.validate.code.ValidateCode;
 
 import java.awt.image.BufferedImage;
 
