@@ -1,9 +1,9 @@
-package com.cobra.validate.code.filter;
+package com.cobra.authentication.mobile;
 
 import com.cobra.properties.SecurityProperties;
+import com.cobra.validate.code.ValidateCode;
 import com.cobra.validate.code.ValidateCodeProcessor;
 import com.cobra.validate.code.exception.ValidateCodeException;
-import com.cobra.validate.code.image.ImageValidateCode;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-//OncePerRequestFilter 是spring 提供的一个工具类，保证过滤器只被调用一次
-public class ValidateCodeFilter extends OncePerRequestFilter implements InitializingBean {
+//OncePerRequestFilter 是spring 提供的一个工具类，保证过滤器只被调用一次,用来验证短信验证码是否有效
+public class SmsCodeValidateFilter extends OncePerRequestFilter implements InitializingBean {
 
     public static final String SESSION_KEY = "SESSION_KEY_IMAGE_CODE_IMAGE";
 
@@ -36,7 +36,7 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
 
     private SecurityProperties securityProperties;
 
-    //用与存储需要图片验证码验证的接口url
+    //用与存储需要验证码验证的接口url
     private Set<String> urlSet = new HashSet<String>();
 
     //用于判断请求路径是否需要验证码验证
@@ -45,11 +45,11 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
     @Override
     public void  afterPropertiesSet ()throws ServletException{
         super.afterPropertiesSet();
-        String [] urlArray= StringUtils.splitByWholeSeparatorPreserveAllTokens(securityProperties.getCode().getImage().getUrl(),";");
+        String [] urlArray= StringUtils.splitByWholeSeparatorPreserveAllTokens(securityProperties.getCode().getSms().getUrl(),";");
         for(String url :urlArray){
             urlSet.add(url);
         }
-        urlSet.add("/authentication/form");
+        urlSet.add("/authentication/mobile");
     }
 
     @Override
@@ -75,8 +75,8 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
     }
 
     private void validate(ServletWebRequest servletWebRequest) throws ServletRequestBindingException {
-        ImageValidateCode codeInSession = (ImageValidateCode) sessionStrategy.getAttribute(servletWebRequest, ValidateCodeProcessor.SESSION_KEY_PREFIX + "_IMAGE");
-        String codeInRequest = ServletRequestUtils.getStringParameter(servletWebRequest.getRequest(), "imageCode");
+        ValidateCode codeInSession = (ValidateCode) sessionStrategy.getAttribute(servletWebRequest, ValidateCodeProcessor.SESSION_KEY_PREFIX+"_SMS");
+        String codeInRequest = ServletRequestUtils.getStringParameter(servletWebRequest.getRequest(), "smsCode");
 
         if (StringUtils.isBlank(codeInRequest)) {
             throw new ValidateCodeException("验证码不能为空");
@@ -85,13 +85,13 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
             throw new ValidateCodeException("验证码不存在");
         }
         if (codeInSession.isExpire()) {
-            sessionStrategy.removeAttribute(servletWebRequest, ValidateCodeProcessor.SESSION_KEY_PREFIX + "_IMAGE");
+            sessionStrategy.removeAttribute(servletWebRequest, ValidateCodeProcessor.SESSION_KEY_PREFIX+"_SMS");
             throw new ValidateCodeException("验证码已经过期");
         }
         if (!StringUtils.equals(codeInSession.getCode(), codeInRequest)) {
             throw new ValidateCodeException("验证码不匹配");
         }
-        sessionStrategy.removeAttribute(servletWebRequest, ValidateCodeProcessor.SESSION_KEY_PREFIX + "_IMAGE");
+        sessionStrategy.removeAttribute(servletWebRequest, ValidateCodeProcessor.SESSION_KEY_PREFIX+"_SMS");
     }
 
     public void setAuthenticationFailureHandler(AuthenticationFailureHandler authenticationFailureHandler) {

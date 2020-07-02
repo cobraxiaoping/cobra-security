@@ -978,6 +978,10 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
 
 ### 实现短信验证码登录
 
+短信验证码参照用户名密码登录实现
+
+![1593701482737](.\images\1593701482737.png)
+
 开发短信验证码接口
 
 
@@ -986,7 +990,7 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
 
 
 
-## 图片验证码以及短信验证码代码重构
+## 图片验证码以及短信验证码生成重构
 
 
 

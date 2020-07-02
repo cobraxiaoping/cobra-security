@@ -83,6 +83,6 @@ public class ValidateCodeController {
 
     @GetMapping("/code/xiao")
     public String createCode(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        return RandomStringUtils.random(6);
+        return RandomStringUtils.randomAlphanumeric(6);
     }
 }

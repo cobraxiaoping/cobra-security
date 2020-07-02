@@ -10,7 +10,7 @@ public class DefaultSmsValidateCodeGenerator implements ValidateCodeGenerator {
 
     @Override
     public ValidateCode generate(ServletWebRequest request) {
-        String code = RandomStringUtils.random(securityProperties.getCode().getSms().getLength());
+        String code = RandomStringUtils.randomAlphanumeric(securityProperties.getCode().getSms().getLength());
         return new ValidateCode(code, securityProperties.getCode().getSms().getExpireIn());
     }
 

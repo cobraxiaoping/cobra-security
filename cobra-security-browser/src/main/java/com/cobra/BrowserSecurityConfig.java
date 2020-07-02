@@ -2,6 +2,8 @@ package com.cobra;
 
 import com.cobra.authentication.CustomAuthenticationFailureHandler;
 import com.cobra.authentication.CustomAuthenticationSuccessHandler;
+import com.cobra.authentication.mobile.SmsCodeAuthenticationSecurityConfig;
+import com.cobra.authentication.mobile.SmsCodeValidateFilter;
 import com.cobra.properties.SecurityProperties;
 import com.cobra.validate.code.filter.ValidateCodeFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +43,11 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private SmsCodeAuthenticationSecurityConfig smsCodeAuthenticationSecurityConfig;
+
     @Bean
-    public PersistentTokenRepository persistentTokenRepository(){
+    public PersistentTokenRepository persistentTokenRepository() {
         JdbcTokenRepositoryImpl jdbcTokenRepository = new JdbcTokenRepositoryImpl();
         jdbcTokenRepository.setDataSource(dataSource);
         //在项目启动的时候创建需要存储用户登录信息的表
@@ -53,22 +58,30 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
+        //图形验证码验证
         ValidateCodeFilter validateCodeFilter = new ValidateCodeFilter();
         validateCodeFilter.setAuthenticationFailureHandler(customAuthenticationFailureHandler);
         validateCodeFilter.setSecurityProperties(securityProperties);
         validateCodeFilter.afterPropertiesSet();
 
+        //短信验证码验证
+        SmsCodeValidateFilter smsCodeValidateFilter = new SmsCodeValidateFilter();
+        smsCodeValidateFilter.setAuthenticationFailureHandler(customAuthenticationFailureHandler);
+        smsCodeValidateFilter.setSecurityProperties(securityProperties);
+        smsCodeValidateFilter.afterPropertiesSet();
+
         http.addFilterBefore(validateCodeFilter, UsernamePasswordAuthenticationFilter.class)
-                    //表单登录设置
-                    .formLogin()
-                    //自定义登录页面，这里请求到一个Controller而不是配置的一个静态页面，好处是根据请求类型判断是否跳转页面还是返回json数据
-                    .loginPage("/authentication/require")
-                    //自定义登录请求提交地址，默认为/login
-                    .loginProcessingUrl("/authentication/form")
-                    .successHandler(customAuthenticationSuccessHandler)
-                    .failureHandler(customAuthenticationFailureHandler)
+                .addFilterBefore(smsCodeValidateFilter, UsernamePasswordAuthenticationFilter.class)
+                //表单登录设置
+                .formLogin()
+                //自定义登录页面，这里请求到一个Controller而不是配置的一个静态页面，好处是根据请求类型判断是否跳转页面还是返回json数据
+                .loginPage("/authentication/require")
+                //自定义登录请求提交地址，默认为/login
+                .loginProcessingUrl("/authentication/form")
+                .successHandler(customAuthenticationSuccessHandler)
+                .failureHandler(customAuthenticationFailureHandler)
                 .and()
-                    .rememberMe()
+                .rememberMe()
                 //设置用户保存token的Repository
                 .tokenRepository(persistentTokenRepository())
                 //设置记住我功能的有效时长单位秒这里我们做成配置可配置
@@ -80,11 +93,11 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 //匹配上的请求放行
                 .antMatchers("/authentication/require", "/code/*", securityProperties.getBrowser().getLoginPage())
-                    .permitAll()
-                    //未匹配上的其他请求都需要认证后才能进行访问
-                    .anyRequest()
-                    .authenticated()
-                    //关闭跨站请求伪造
-                .and().csrf().disable();
+                .permitAll()
+                //未匹配上的其他请求都需要认证后才能进行访问
+                .anyRequest()
+                .authenticated()
+                //关闭跨站请求伪造
+                .and().csrf().disable().apply(smsCodeAuthenticationSecurityConfig);
     }
 }

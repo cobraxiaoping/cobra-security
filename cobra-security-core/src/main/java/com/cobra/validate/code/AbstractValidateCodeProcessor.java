@@ -51,7 +51,7 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
     ;
 
     private void save(ServletWebRequest request, C validateCode) {
-        sessionStrategy.setAttribute(request, SESSION_KEY_PREFIX + getProcessorType(request).toUpperCase(), validateCode);
+        sessionStrategy.setAttribute(request, SESSION_KEY_PREFIX + "_" + getProcessorType(request).toUpperCase(), validateCode);
     }
 
     /**
